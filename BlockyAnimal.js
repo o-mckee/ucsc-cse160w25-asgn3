@@ -53,6 +53,7 @@ let u_ProjectionMatrix;
 let u_ViewMatrix;
 let u_GlobalRotateMatrix;
 let u_Sampler0;
+let u_Sampler1;
 let u_whichTexture;
 
 function setupWebGL() {
@@ -170,6 +171,8 @@ let g_frontLeftLegAnimation = false;
 let g_FrontLeftLegPawAngle = 0;
 let g_frontLeftLegPawAnimation = false;
 
+let g_camera;
+
 // Set up actions for the HTML UI elements
 function addActionsForHtmlUI() {
   // Awesomeness: draw a pattern button event
@@ -222,13 +225,15 @@ function initTextures() {
   // tell the browser to load image
   image.src = 'sky.jpg';
 
+
   var image2 = new Image();
   if (!image2) {
     console.log('Failed to create the image2 object');
     return false;
   }
-  image2.onload = function() { sendImageToTEXTURE(image2, u_Sampler1) };
-  image.src = 'uvgrid.jpg';
+  
+  image2.onload = function() { sendImageToTEXTURE1(image2); };
+  image2.src = 'uvgrid.jpg';
 
   return true;
 }
@@ -264,7 +269,7 @@ function sendImageToTEXTURE0(image) {
 
 }
 
-function sendImageToTEXTURE(image, given_texture) {
+function sendImageToTEXTURE1(image) {
   // create a texture object
   var texture = gl.createTexture();
   if (!texture) {
@@ -276,7 +281,7 @@ function sendImageToTEXTURE(image, given_texture) {
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
 
   // enable texture unit0
-  gl.activeTexture(gl.TEXTURE0);
+  gl.activeTexture(gl.TEXTURE1);
 
   // bind the texture object to the target
   gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -289,7 +294,7 @@ function sendImageToTEXTURE(image, given_texture) {
 
 
   // set the texture unit 0 to the sampler
-  gl.uniform1i(given_texture, 0);
+  gl.uniform1i(u_Sampler1, 0);
 
   console.log('finished loadTexture');
 
@@ -314,6 +319,8 @@ function main() {
   canvas.onmousemove = function(ev) { if (ev.buttons == 1) { click(ev) } };*/
 
   initTextures();
+
+  g_camera = new Camera();
 
 
   // Specify the color for clearing <canvas>
@@ -371,28 +378,62 @@ function convertCoordinatesEventToGL(ev) {
 /*var g_eye = [0,0.3,-2];
 var g_at = [0,0,0];
 var g_up = [0,1,0];*/
-var g_camera = new Camera();
+//var g_camera = new Camera();
 
 function keydown(ev) {
   if (ev.keyCode == 87){ // letter w (forward)
     // forward
+    g_camera.moveForward();
     
   } else if (ev.keyCode == 83) { // letter s (backwards)
     // backwards
+    g_camera.moveBackwards();
   } else if (ev.keyCode == 68) { // letter d (right)
     // right
     //g_eye[0] -= 0.2;
-    g_camera.eye.elements[0] -= 0.2;
+    g_camera.moveRight();
+   //g_camera.eye.elements[0] -= 0.2;
   } else if (ev.keyCode == 65) { // letter a (left)
     // left
     // swap from sub to addition on both left and right if not working as intended
     //g_eye[0] += 0.2;
-    g_camera.eye.elements[0] += 0.2;
+    g_camera.moveLeft();
+    //g_camera.eye.elements[0] += 0.2;
+  } else if (ev.keyCode == 81) { // letter q (panLeft)
+    // pan left
+    g_camera.panLeft();
+  } else if (ev.keyCode == 69) { // letter e (panRight)
+    // pan right
+    g_camera.panRight();
   }
 
   renderScene();
   console.log(ev.keyCode);
   //console.log('test: ' + g_camera.eye.elements[0]);
+}
+// g_map: FRONT == top side of array
+var g_map = [
+  [1, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 1, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 1, 1, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 1],
+  [1, 1, 1, 1, 1, 1, 1, 1]
+];
+
+function drawMap() {
+  for (x = 0; x < 8; x++) {
+    for (y = 0; y < 8; y++) {
+      if (g_map[x][y] == 1) {
+        var body = new Cube();
+        body.color = [1.0, 1.0, 0.0, 1.0];
+        body.matrix.translate(y-4, -0.75, x-4);
+        body.render();
+      }
+    }
+  }
 }
 
 
@@ -422,10 +463,20 @@ function renderScene() {
   var body = new Cube();
   body.color = [1.0, 0.0, 0.0, 1.0];
   body.textureNum = -3;
-  body.matrix.translate(0.0, -0.75, 0.0);
+  body.matrix.translate(-0.1, -0.75, 0.50);
   body.matrix.scale(10, 0, 10);
   body.matrix.translate(-0.5, 0, -0.5);
   body.render();
+
+  // Draw the sky
+  var sky = new Cube();
+  sky.color = [0.55, 0.95, 1.0, 1.0];
+  sky.textureNum = 0;
+  sky.matrix.scale(50, 50, 50);
+  sky.matrix.translate(-0.5, -0.5, -0.5);
+  sky.render();
+
+  drawMap();
 
 
 
